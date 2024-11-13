@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom font classes */
+.font-caveat {
+  font-family: "Caveat", cursive !important;
+}
+
+.font-reenie {
+  font-family: "Reenie Beanie", cursive !important;
+}
+
+.font-meddon {
+  font-family: "Meddon", cursive !important;
+}
+
+.font-marker {
+  font-family: "Permanent Marker", cursive !important;
+}
+
+.font-amatic {
+  font-family: "Amatic SC", cursive !important;
+}
