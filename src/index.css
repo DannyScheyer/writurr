@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .legal-pad-shadow {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 
+                0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  .legal-pad-texture {
+    background-image: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 15px 100%;
+  }
+}
+
+.legal-pad-lines {
+  background-image: 
+    linear-gradient(#c3e3ff 1px, transparent 1px);
+  background-size: 100% 0.28in;
+  background-position-y: 35px;
+}
+
+textarea::placeholder {
+  opacity: 0.5;
+}
+
 /* Custom font classes */
 .font-caveat {
   font-family: "Caveat", cursive !important;

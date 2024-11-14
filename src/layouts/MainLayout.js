@@ -4,7 +4,7 @@ import Editor from '../pages/Editor';
 
 const MainLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-900">
       <main className="container mx-auto px-4">
         <Routes>
           <Route path="/" element={<Editor />} />
