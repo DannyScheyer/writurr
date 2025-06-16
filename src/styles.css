@@ -77,12 +77,14 @@ body {
 }
 
 .line-item .line-preview {
-  @apply text-sm text-gray-900 font-serif truncate;
+  @apply text-sm text-gray-900 truncate;
+  font-family: "Fanwood Text", serif;
   font-weight: normal;
 }
 
 .line-item .line-stats {
-  @apply text-xs text-gray-600 mt-1 font-serif;
+  @apply text-xs text-gray-600 mt-1;
+  font-family: "Fanwood Text", serif;
   margin-left: 1rem;
   font-style: italic;
 }
@@ -93,4 +95,5 @@ body {
 
 .line-item .character-count {
   @apply font-bold text-gray-900;
+  font-family: "Fanwood Text", serif;
 } 
