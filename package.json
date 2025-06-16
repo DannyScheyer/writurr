@@ -1,7 +1,7 @@
 {
-  "name": "lyza",
+  "name": "writurr",
   "version": "1.0.0",
-  "description": "Lyza - A beautiful text analysis tool built with Electron",
+  "description": "Writurr - A beautiful text analysis tool built with Electron",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -20,8 +20,8 @@
     "tailwindcss": "^3.3.6"
   },
   "build": {
-    "appId": "com.lyza.app",
-    "productName": "Lyza",
+    "appId": "com.writurr.app",
+    "productName": "Writurr",
     "directories": {
       "output": "dist"
     },

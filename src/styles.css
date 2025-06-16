@@ -2,9 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Set serif fonts globally */
+/* Set Fanwood Text as the default font */
 body {
-  font-family: "Times New Roman", "Georgia", "Garamond", serif;
+  font-family: "Fanwood Text", serif;
+}
+
+/* Font utility class */
+.font-fanwood {
+  font-family: "Fanwood Text", serif;
 }
 
 /* Custom scrollbar for textarea */
