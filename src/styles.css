@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set serif fonts globally */
+body {
+  font-family: "Times New Roman", "Georgia", "Garamond", serif;
+}
+
+/* Custom scrollbar for textarea */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-400;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Animation for stats cards */
+.stat-card {
+  @apply transform transition-all duration-200 ease-in-out;
+}
+
+.stat-card:hover {
+  @apply scale-105 shadow-lg;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Tab styling */
+.tab-button.active {
+  @apply border-blue-500 text-blue-600;
+}
+
+.tab-content.hidden {
+  @apply hidden;
+}
+
+/* Line item styling */
+.line-item {
+  @apply cursor-pointer p-4 m-2 transition-all duration-200 border-l-4 border-transparent;
+}
+
+.line-item:hover {
+  @apply border-l-blue-400;
+}
+
+.line-item.selected {
+  @apply border-l-blue-500;
+}
+
+.line-item .line-preview {
+  @apply text-sm text-gray-900 font-serif truncate;
+  font-weight: normal;
+}
+
+.line-item .line-stats {
+  @apply text-xs text-gray-600 mt-1 font-serif;
+  margin-left: 1rem;
+  font-style: italic;
+}
+
+.line-item .line-stats.empty-line {
+  @apply text-gray-500;
+}
+
+.line-item .character-count {
+  @apply font-bold text-gray-900;
+} 
