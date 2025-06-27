@@ -24,6 +24,13 @@ const multiLineCount = document.getElementById('multi-line-count');
 const lineAnalysisList = document.getElementById('line-analysis-list');
 const selectedLineDetails = document.getElementById('selected-line-details');
 
+// Duplicate checker elements
+const duplicateCheckerInput = document.getElementById('duplicate-checker-input');
+const duplicateCheckerCount = document.getElementById('duplicate-checker-count');
+const duplicateCheckerDisplay = document.getElementById('duplicate-checker-display');
+const sameSentenceDuplicates = document.getElementById('same-sentence-duplicates');
+const withinTenWordsDuplicates = document.getElementById('within-ten-words-duplicates');
+
 // Highlighter elements
 const highlighterInput = document.getElementById('highlighter-input');
 const highlightedTextDisplay = document.getElementById('highlighted-text-display');
@@ -40,12 +47,299 @@ const clearBtn = document.getElementById('clear-btn');
 // State management
 let analysisTimeout = null;
 let multiLineAnalysisTimeout = null;
+let duplicateCheckerTimeout = null;
 let selectedLineIndex = -1;
 let currentLines = [];
 let highlighterTimeout = null;
 let wordHighlightData = [];
 let wordControlCounter = 0;
 const DEBOUNCE_DELAY = 300; // ms
+
+// --- Stop Words Set ---
+const STOP_WORDS = new Set([
+  // Articles, conjunctions, prepositions
+  'a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet',
+  'at', 'by', 'in', 'of', 'on', 'to', 'up', 'with', 'as', 'from', 'into', 'like', 'near', 'off', 'over', 'past', 'since', 'than', 'till', 'upon', 'via', 'about', 'after', 'before', 'behind', 'below', 'beneath', 'beside', 'between', 'beyond', 'during', 'except', 'inside', 'onto', 'outside', 'per', 'through', 'under', 'within', 'without',
+  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'if', 'because', 'although', 'while', 'when', 'where', 'how', 'what', 'which', 'who', 'whom', 'whose', 'that', 'this', 'these', 'those',
+  // Pronouns
+  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs', 'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves'
+]);
+
+// --- Function Declarations (use function declarations for hoisting) ---
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeWord(word) {
+  // Lowercase and remove trailing 's or 's (apostrophe or curly apostrophe)
+  return word.toLowerCase().replace(/(['']s)$/i, '');
+}
+
+function analyzeDuplicates(text) {
+  if (!text.trim()) {
+    return {
+      sameSentenceDuplicates: 0,
+      withinTenWordsDuplicates: 0,
+      highlightedText: 'Enter text to see duplicate word highlighting...'
+    };
+  }
+  // Get all words and their positions
+  const allWords = text.toLowerCase().match(/\b\w+\b/g) || [];
+  const wordPositions = {};
+  allWords.forEach((word, index) => {
+    if (!STOP_WORDS.has(word)) {
+      if (!wordPositions[word]) {
+        wordPositions[word] = [];
+      }
+      wordPositions[word].push(index);
+    }
+  });
+  // Treat line breaks as sentence boundaries
+  const sentences = text.split(/(?:[.!?]+|\n)/).filter(sentence => sentence.trim().length > 0);
+  let sameSentenceCount = 0;
+  const sameSentenceSet = new Set();
+  sentences.forEach(sentence => {
+    const sentenceWords = sentence.trim().toLowerCase().match(/\b\w+\b/g) || [];
+    const sentenceWordCounts = {};
+    sentenceWords.forEach(word => {
+      if (!STOP_WORDS.has(word)) {
+        sentenceWordCounts[word] = (sentenceWordCounts[word] || 0) + 1;
+      }
+    });
+    Object.entries(sentenceWordCounts).forEach(([word, count]) => {
+      if (count > 1) {
+        sameSentenceCount += count - 1;
+        sameSentenceSet.add(word);
+      }
+    });
+  });
+  // Count within-10-words duplicates (excluding same-sentence duplicates)
+  let withinTenWordsCount = 0;
+  Object.entries(wordPositions).forEach(([word, positions]) => {
+    if (sameSentenceSet.has(word)) return; // skip if already same-sentence duplicate
+    if (positions.length > 1) {
+      for (let i = 0; i < positions.length; i++) {
+        for (let j = i + 1; j < positions.length; j++) {
+          if (positions[j] - positions[i] <= 10) {
+            withinTenWordsCount++;
+            break;
+          }
+        }
+      }
+    }
+  });
+  // Highlight duplicates in the text
+  const highlightedText = highlightDuplicates(text, sameSentenceSet);
+  return {
+    sameSentenceDuplicates: sameSentenceCount,
+    withinTenWordsDuplicates: withinTenWordsCount,
+    highlightedText: highlightedText
+  };
+}
+
+function highlightDuplicates(text, sameSentenceSet) {
+  if (!text.trim()) return text.replace(/\n/g, '<br>');
+
+  // 1. Tokenize text into sentences and words, track positions
+  const sentenceRegex = /([^.!?\n]+)([.!?]+|\n|$)/g;
+  let match;
+  let wordGlobalIdx = 0;
+  let wordMeta = []; // { norm, raw, globalIdx, sentenceIdx, wordIdxInSentence }
+  let sentenceBoundaries = [];
+  let sentenceIdx = 0;
+  let pinkPositions = new Set();
+
+  // First pass: collect word metadata and sentence boundaries
+  while ((match = sentenceRegex.exec(text)) !== null) {
+    let sentence = match[1];
+    let delimiter = match[2] || '';
+    const words = sentence.match(/\b\w+(?:['']s)?\b/g) || [];
+    for (let i = 0; i < words.length; i++) {
+      const norm = normalizeWord(words[i]);
+      wordMeta.push({
+        norm,
+        raw: words[i],
+        globalIdx: wordGlobalIdx,
+        sentenceIdx,
+        wordIdxInSentence: i
+      });
+      wordGlobalIdx++;
+    }
+    sentenceBoundaries.push({ start: wordGlobalIdx - words.length, end: wordGlobalIdx, delimiter });
+    sentenceIdx++;
+  }
+
+  // Mark all positions of same-sentence duplicates as pink (using correct global index)
+  for (let s = 0; s < sentenceBoundaries.length; s++) {
+    const { start, end } = sentenceBoundaries[s];
+    const wordCounts = {};
+    for (let i = start; i < end; i++) {
+      const norm = wordMeta[i].norm;
+      if (!norm || STOP_WORDS.has(norm) || norm.length === 0) continue;
+      wordCounts[norm] = (wordCounts[norm] || 0) + 1;
+    }
+    Object.entries(wordCounts).forEach(([norm, count]) => {
+      if (!norm || STOP_WORDS.has(norm) || norm.length === 0) return;
+      if (count > 1) {
+        for (let i = start; i < end; i++) {
+          if (wordMeta[i].norm === norm) {
+            pinkPositions.add(i);
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Find within-10-words duplicate positions (only those within 10 of another, and not already pink)
+  const bluePositions = new Set();
+  const normToPositions = {};
+  for (let i = 0; i < wordMeta.length; i++) {
+    const norm = wordMeta[i].norm;
+    if (!norm || STOP_WORDS.has(norm) || norm.length === 0) continue;
+    if (!normToPositions[norm]) normToPositions[norm] = [];
+    normToPositions[norm].push(i);
+  }
+  Object.entries(normToPositions).forEach(([norm, positions]) => {
+    for (let i = 0; i < positions.length; i++) {
+      if (pinkPositions.has(positions[i])) continue; // pink takes priority
+      for (let j = 0; j < positions.length; j++) {
+        if (i === j) continue;
+        if (Math.abs(positions[i] - positions[j]) <= 10) {
+          bluePositions.add(positions[i]);
+          break;
+        }
+      }
+    }
+  });
+
+  // 3. Render the text, word by word, preserving non-word chars and line breaks
+  let highlighted = '';
+  let wordRegex = /\b\w+(?:['']s)?\b/g;
+  let lastIndex = 0;
+  let wordIdx = 0;
+  let m;
+  while ((m = wordRegex.exec(text)) !== null) {
+    // Add text before this word
+    highlighted += escapeHtml(text.slice(lastIndex, m.index));
+    if (pinkPositions.has(wordIdx)) {
+      highlighted += `<span style=\"background-color: #FFB3BA; padding: 1px 2px;\">${escapeHtml(m[0])}</span>`;
+    } else if (bluePositions.has(wordIdx)) {
+      highlighted += `<span style=\"background-color: #BAE1FF; padding: 1px 2px;\">${escapeHtml(m[0])}</span>`;
+    } else {
+      highlighted += escapeHtml(m[0]);
+    }
+    lastIndex = m.index + m[0].length;
+    wordIdx++;
+  }
+  // Add any remaining text
+  highlighted += escapeHtml(text.slice(lastIndex));
+  // Replace line breaks with <br>
+  highlighted = highlighted.replace(/\n/g, '<br>');
+  return highlighted;
+}
+
+function performDuplicateCheck(text) {
+  if (window.duplicateCheckerTimeout) {
+    clearTimeout(window.duplicateCheckerTimeout);
+  }
+  const wordCount = text.trim() ? text.toLowerCase().match(/\b\w+\b/g)?.length || 0 : 0;
+  window.duplicateCheckerCount.textContent = `${wordCount.toLocaleString()} words`;
+  window.duplicateCheckerTimeout = setTimeout(() => {
+    const results = analyzeDuplicates(text);
+    updateDuplicateCheckerResults(results);
+  }, window.DEBOUNCE_DELAY || 300);
+}
+
+function updateDuplicateCheckerResults(results) {
+  window.sameSentenceDuplicates.textContent = results.sameSentenceDuplicates.toLocaleString();
+  window.withinTenWordsDuplicates.textContent = results.withinTenWordsDuplicates.toLocaleString();
+  window.duplicateCheckerDisplay.innerHTML = results.highlightedText;
+}
+
+// --- DOMContentLoaded: All DOM queries and event listeners go here ---
+document.addEventListener('DOMContentLoaded', function() {
+  // Duplicate Checker Elements
+  const duplicateCheckerInput = document.getElementById('duplicate-checker-input');
+  const duplicateCheckerCount = document.getElementById('duplicate-checker-count');
+  const duplicateCheckerDisplay = document.getElementById('duplicate-checker-display');
+  const sameSentenceDuplicates = document.getElementById('same-sentence-duplicates');
+  const withinTenWordsDuplicates = document.getElementById('within-ten-words-duplicates');
+
+  function safeSetTextContent(el, value) {
+    if (el) el.textContent = value;
+  }
+  function safeSetInnerHTML(el, value) {
+    if (el) el.innerHTML = value;
+  }
+
+  // Defensive: Only initialize duplicate checker if all elements exist
+  if (
+    duplicateCheckerInput &&
+    duplicateCheckerCount &&
+    duplicateCheckerDisplay &&
+    sameSentenceDuplicates &&
+    withinTenWordsDuplicates
+  ) {
+    window.DEBOUNCE_DELAY = 300;
+    window.duplicateCheckerTimeout = null;
+
+    function safePerformDuplicateCheck(text) {
+      if (window.duplicateCheckerTimeout) {
+        clearTimeout(window.duplicateCheckerTimeout);
+      }
+      const wordCount = text.trim() ? text.toLowerCase().match(/\b\w+\b/g)?.length || 0 : 0;
+      safeSetTextContent(duplicateCheckerCount, `${wordCount.toLocaleString()} words`);
+      window.duplicateCheckerTimeout = setTimeout(() => {
+        const results = analyzeDuplicates(text);
+        // Ensure line breaks are preserved in the final output
+        let highlighted = results.highlightedText;
+        if (typeof highlighted === 'string') {
+          highlighted = highlighted.replace(/\n/g, '<br>');
+        }
+        safeSetTextContent(sameSentenceDuplicates, results.sameSentenceDuplicates.toLocaleString());
+        safeSetTextContent(withinTenWordsDuplicates, results.withinTenWordsDuplicates.toLocaleString());
+        safeSetInnerHTML(duplicateCheckerDisplay, highlighted);
+      }, window.DEBOUNCE_DELAY);
+    }
+
+    safePerformDuplicateCheck('');
+    duplicateCheckerInput.addEventListener('input', function(event) {
+      safePerformDuplicateCheck(event.target.value);
+    });
+    duplicateCheckerInput.addEventListener('paste', function(event) {
+      setTimeout(function() {
+        safePerformDuplicateCheck(duplicateCheckerInput.value);
+      }, 10);
+    });
+  } else {
+    console.warn('Duplicate checker elements missing from DOM. Duplicate checker not initialized.');
+  }
+
+  // Word Highlighter Elements
+  const wordHighlightControls = document.getElementById('word-highlight-controls');
+  const addWordBtn = document.getElementById('add-word-btn');
+  const highlighterInput = document.getElementById('highlighter-input');
+  const highlightedTextDisplay = document.getElementById('highlighted-text-display');
+
+  // Defensive: Only initialize word highlighter if all elements exist
+  if (wordHighlightControls && addWordBtn && highlighterInput && highlightedTextDisplay) {
+    if (typeof initializeWordHighlighter === 'function') {
+      initializeWordHighlighter();
+    }
+    // ... (add other word highlighter event listeners here as needed) ...
+  } else {
+    console.warn('Word highlighter elements missing from DOM. Word highlighter not initialized.');
+  }
+
+  // ... (add other feature initializations with similar checks) ...
+});
 
 /**
  * Main text analysis function
@@ -136,17 +430,6 @@ const updateWordFrequencyList = (wordFrequency) => {
 };
 
 /**
- * Escapes HTML characters
- * @param {string} text - Text to escape
- * @returns {string} Escaped text
- */
-const escapeHtml = (text) => {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-};
-
-/**
  * Performs text analysis with debouncing
  * @param {string} text - Text to analyze
  */
@@ -177,6 +460,10 @@ const clearText = () => {
     multiLineInput.value = '';
     multiLineInput.focus();
     performMultiLineAnalysis('');
+  } else if (activeTab === 'duplicate-checker') {
+    duplicateCheckerInput.value = '';
+    duplicateCheckerInput.focus();
+    performDuplicateCheck('');
   } else if (activeTab === 'word-highlighter') {
     highlighterInput.value = '';
     highlighterInput.focus();
@@ -213,6 +500,8 @@ const switchTab = (tabName) => {
     setTimeout(() => textInput?.focus(), 100);
   } else if (tabName === 'multi-line') {
     setTimeout(() => multiLineInput?.focus(), 100);
+  } else if (tabName === 'duplicate-checker') {
+    setTimeout(() => duplicateCheckerInput?.focus(), 100);
   } else if (tabName === 'word-highlighter') {
     setTimeout(() => highlighterInput?.focus(), 100);
   }
@@ -468,15 +757,6 @@ const updateHighlightedText = () => {
 };
 
 /**
- * Escapes regex special characters
- * @param {string} string - String to escape
- * @returns {string} Escaped string
- */
-const escapeRegex = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
-/**
  * Debounced highlighter update
  */
 const performHighlighterUpdate = () => {
@@ -503,7 +783,19 @@ document.addEventListener('DOMContentLoaded', () => {
   textInput.focus();
   performAnalysis('');
   performMultiLineAnalysis('');
+  performDuplicateCheck('');
   initializeWordHighlighter();
+
+  // Duplicate checker text input event listeners
+  duplicateCheckerInput.addEventListener('input', (event) => {
+    performDuplicateCheck(event.target.value);
+  });
+
+  duplicateCheckerInput.addEventListener('paste', (event) => {
+    setTimeout(() => {
+      performDuplicateCheck(duplicateCheckerInput.value);
+    }, 10);
+  });
 });
 
 // Single line text input event listeners

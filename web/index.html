@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="styles.css">
     <meta name="description" content="Writurr - A beautiful text analysis tool for character counting, word analysis, and multi-line text processing">
 </head>
-<body class="h-full bg-gray-50">
+<body class="h-full bg-gray-50 font-sans">
     <div class="min-h-full flex flex-col">
         <!-- Header -->
         <header class="bg-white border-b border-gray-200">
@@ -38,6 +38,12 @@
                     </button>
                     <button class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm transition-colors duration-200 font-fanwood" data-tab="multi-line">
                         Multi-Line Analysis
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm transition-colors duration-200 font-fanwood" data-tab="duplicate-checker">
+                        Duplicate Checker
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm transition-colors duration-200 font-fanwood" data-tab="word-highlighter">
+                        Word Highlighter
                     </button>
                 </div>
             </div>
@@ -184,6 +190,116 @@
 
                             <div class="text-sm text-gray-800 bg-white bg-opacity-60 p-3 font-fanwood break-all border border-gray-200" id="selected-line-preview">
                                 Select a line to see its content and detailed analysis
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duplicate Checker Tab -->
+            <div id="duplicate-checker-tab" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+                    <!-- Duplicate Checker Input Section -->
+                    <div class="flex flex-col">
+                        <div class="mb-4">
+                            <label for="duplicate-checker-input" class="block text-sm font-medium text-gray-700 mb-2 font-fanwood">
+                                Enter text to check for duplicates:
+                            </label>
+                            <div class="relative">
+                                <textarea 
+                                    id="duplicate-checker-input" 
+                                    class="w-full h-96 p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                                    placeholder="Enter your text here to check for duplicate words within sentences and within 10-word windows..."
+                                    spellcheck="false"
+                                ></textarea>
+                                <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1">
+                                    <span id="duplicate-checker-count">0 words</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Duplicate Checker Results -->
+                    <div class="flex flex-col">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Duplicate Analysis</h2>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div class="mb-4 p-4 border border-gray-200" style="background-color: #F8E8EB;">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-2 font-fanwood">Highlight Legend</h3>
+                            <div class="flex items-center space-x-4 text-xs">
+                                <div class="flex items-center">
+                                    <span class="inline-block w-4 h-4 mr-2" style="background-color: #FFB3BA;"></span>
+                                    <span class="font-fanwood">Same sentence duplicates</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="inline-block w-4 h-4 mr-2" style="background-color: #BAE1FF;"></span>
+                                    <span class="font-fanwood">Within 10 words</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Highlighted Text Display -->
+                        <div class="p-6 border border-gray-200 flex-1" style="background-color: #F8E8EB;">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3 font-fanwood">Highlighted Text</h3>
+                            <div class="bg-white bg-opacity-60 p-4 border border-gray-200 min-h-80 max-h-96 overflow-y-auto custom-scrollbar font-fanwood text-sm leading-relaxed" id="duplicate-checker-display">
+                                <div class="text-sm text-gray-600 italic font-fanwood">Enter text to see duplicate word highlighting...</div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="mt-4 grid grid-cols-2 gap-4">
+                            <div class="p-4 border border-gray-200" style="background-color: #F8E8EB;">
+                                <div class="text-xl font-bold text-gray-900" id="same-sentence-duplicates">0</div>
+                                <div class="text-xs text-gray-700 font-fanwood">Same Sentence Duplicates</div>
+                            </div>
+                            <div class="p-4 border border-gray-200" style="background-color: #F8E8EB;">
+                                <div class="text-xl font-bold text-gray-900" id="within-ten-words-duplicates">0</div>
+                                <div class="text-xs text-gray-700 font-fanwood">Within 10 Words</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word Highlighter Tab -->
+            <div id="word-highlighter-tab" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+                    <!-- Input Section -->
+                    <div class="flex flex-col">
+                        <div class="mb-4">
+                            <label for="highlighter-input" class="block text-sm font-medium text-gray-700 mb-2 font-fanwood">
+                                Enter text to highlight specific words:
+                            </label>
+                            <div class="relative">
+                                <textarea 
+                                    id="highlighter-input" 
+                                    class="w-full h-96 p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                                    placeholder="Type or paste your text here..."
+                                    spellcheck="false"
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-fanwood text-gray-700">Words to Highlight</span>
+                                <button id="add-word-btn" class="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200 font-fanwood">
+                                    + Add Word
+                                </button>
+                            </div>
+                            <div id="word-highlight-controls" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Highlighted Text Display -->
+                    <div class="flex flex-col">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4 font-fanwood">Highlighted Text</h2>
+                        </div>
+                        <div class="p-6 border border-gray-200 flex-1" style="background-color: #F8E8EB;">
+                            <div class="bg-white bg-opacity-60 p-4 border border-gray-200 min-h-80 max-h-96 overflow-y-auto custom-scrollbar font-fanwood text-sm leading-relaxed" id="highlighted-text-display">
+                                <div class="text-sm text-gray-600 italic font-fanwood">Enter text and add words to highlight to see the results here...</div>
                             </div>
                         </div>
                     </div>

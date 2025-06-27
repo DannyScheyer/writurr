@@ -4,7 +4,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'sans': ['Fanwood Text', 'Georgia', 'serif'],
+        'sans': ['Fanwood Text', 'serif'],
         'mono': ['SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'source-code-pro', 'Menlo', 'Courier New', 'monospace'],
       },
       colors: {

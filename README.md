@@ -142,3 +142,15 @@ Feel free to contribute by:
 ## License
 
 MIT License - feel free to use this code for your own projects. 
+
+### Duplicate Checker
+- **Same Sentence Duplicates**: Highlights words that appear twice or more within the same sentence (pink highlighting)
+- **Within 10 Words**: Highlights words that appear twice within a 10-word window (blue highlighting)
+- Real-time analysis with debounced updates
+- Visual highlighting with color-coded legend
+- Statistics showing duplicate counts
+
+### Word Highlighter
+- Custom word highlighting with color selection
+- Multiple word highlighting simultaneously
+- Word count tracking for each highlighted term 
