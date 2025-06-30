@@ -788,3 +788,12 @@ const updateMultiLineAnalysis = (lines) => {
   selectedLineDetails.classList.remove('hidden');
   selectedLineIndex = -1;
 };
+
+// Place updateReductionUI and handleReductionSliderChange here
+function updateReductionUI() {
+  // Implementation of updateReductionUI function
+}
+
+function handleReductionSliderChange() {
+  // Implementation of handleReductionSliderChange function
+}
