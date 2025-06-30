@@ -3,6 +3,8 @@
  * Web version without Electron dependencies
  */
 
+// Move all DOM element declarations to the very top of the file, before any logic or event listeners that use them.
+
 // Text Analysis App - Desktop + Mobile
 let selectedWordControls = [];
 let currentSelectedLine = null;
