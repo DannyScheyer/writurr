@@ -37,6 +37,12 @@ const highlightedTextDisplay = document.getElementById('highlighted-text-display
 const wordHighlightControls = document.getElementById('word-highlight-controls');
 const addWordBtn = document.getElementById('add-word-btn');
 
+// Side-by-side elements
+const sideBySideLeftInput = document.getElementById('side-by-side-left-input');
+const sideBySideRightInput = document.getElementById('side-by-side-right-input');
+const sideBySideLeftCount = document.getElementById('side-by-side-left-count');
+const sideBySideRightCount = document.getElementById('side-by-side-right-count');
+
 // Tab elements
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -770,6 +776,24 @@ const performHighlighterUpdate = () => {
 };
 
 /**
+ * Updates character count for side-by-side left input
+ */
+const updateSideBySideLeftCount = (text) => {
+  if (sideBySideLeftCount) {
+    sideBySideLeftCount.textContent = `${text.length} characters`;
+  }
+};
+
+/**
+ * Updates character count for side-by-side right input
+ */
+const updateSideBySideRightCount = (text) => {
+  if (sideBySideRightCount) {
+    sideBySideRightCount.textContent = `${text.length} characters`;
+  }
+};
+
+/**
  * Initializes word highlighter with first control
  */
 const initializeWordHighlighter = () => {
@@ -785,6 +809,14 @@ document.addEventListener('DOMContentLoaded', () => {
   performMultiLineAnalysis('');
   performDuplicateCheck('');
   initializeWordHighlighter();
+  
+  // Initialize side-by-side character counts
+  if (sideBySideLeftInput) {
+    updateSideBySideLeftCount(sideBySideLeftInput.value);
+  }
+  if (sideBySideRightInput) {
+    updateSideBySideRightCount(sideBySideRightInput.value);
+  }
 
   // Duplicate checker text input event listeners
   duplicateCheckerInput.addEventListener('input', (event) => {
@@ -843,6 +875,31 @@ addWordBtn.addEventListener('click', () => {
   setupWordControlListeners(newControl);
   newControl.querySelector('.word-input').focus();
 });
+
+// Side-by-side input event listeners
+if (sideBySideLeftInput) {
+  sideBySideLeftInput.addEventListener('input', (event) => {
+    updateSideBySideLeftCount(event.target.value);
+  });
+
+  sideBySideLeftInput.addEventListener('paste', (event) => {
+    setTimeout(() => {
+      updateSideBySideLeftCount(sideBySideLeftInput.value);
+    }, 10);
+  });
+}
+
+if (sideBySideRightInput) {
+  sideBySideRightInput.addEventListener('input', (event) => {
+    updateSideBySideRightCount(event.target.value);
+  });
+
+  sideBySideRightInput.addEventListener('paste', (event) => {
+    setTimeout(() => {
+      updateSideBySideRightCount(sideBySideRightInput.value);
+    }, 10);
+  });
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', handleKeyboardShortcuts);
