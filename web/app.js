@@ -56,6 +56,12 @@ let wordHighlightData = [];
 let wordControlCounter = 0;
 const DEBOUNCE_DELAY = 300; // ms
 
+// Reduction slider and preview elements
+const reductionSlider = document.getElementById('reduction-slider');
+const reductionSliderMax = document.getElementById('reduction-slider-max');
+const reductionPreview = document.getElementById('reduction-preview');
+const reductionMethod = document.getElementById('reduction-method');
+
 // --- Stop Words Set ---
 const STOP_WORDS = new Set([
   // Articles, conjunctions, prepositions
@@ -65,6 +71,211 @@ const STOP_WORDS = new Set([
   // Pronouns
   'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs', 'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves'
 ]);
+
+// --- Reduction Pipeline ---
+
+/**
+ * Reduce text to a target character count using a series of strategies.
+ * @param {string} text - The input text
+ * @param {number} target - The target character count
+ * @returns {{result: string, method: string}}
+ */
+function reduceTextToTarget(text, target) {
+  if (text.length <= target) {
+    return { result: text, method: 'No reduction needed' };
+  }
+
+  // 1. Remove filler words
+  let reduced = removeFillerWords(text);
+  if (reduced.length <= target) return { result: reduced, method: 'Removed filler words' };
+
+  // 2. Remove adjectives/adverbs/other words
+  reduced = removeAdjectivesAdverbs(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Removed adjectives/adverbs/other words' };
+
+  // 3. Use contractions
+  reduced = useContractions(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Used contractions' };
+
+  // 4. Remove extra clauses
+  reduced = removeExtraClauses(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Removed extra clauses' };
+
+  // 5. Use abbreviations
+  reduced = useAbbreviations(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Used abbreviations' };
+
+  // 6. Replace with shorter synonyms
+  reduced = replaceWithShorterSynonyms(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Replaced with shorter synonyms' };
+
+  // 7. Remove grammatical elements (allow phrases)
+  reduced = removeGrammaticalElements(reduced);
+  if (reduced.length <= target) return { result: reduced, method: 'Removed grammatical elements (phrase style)' };
+
+  // 8. Max reduction reached
+  return { result: reduced, method: 'Max reduction reached' };
+}
+
+// --- Individual Reduction Steps ---
+
+// 1. Remove filler words (using a list from Grammarly)
+function removeFillerWords(text) {
+  const FILLER_WORDS = [
+    'um', 'uh', 'oh', 'er', 'ah', 'very', 'really', 'highly', 'like', 'just',
+    'you know', 'you see', 'right', 'i mean', 'i guess', 'i suppose',
+    'totally', 'literally', 'seriously'
+  ];
+  let pattern = new RegExp('\\b(' + FILLER_WORDS.map(escapeRegex).join('|') + ')\\b', 'gi');
+  return text.replace(pattern, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+// 2. Remove adjectives/adverbs/other words (simple heuristic: remove words ending in -ly, common adjectives)
+function removeAdjectivesAdverbs(text) {
+  // Remove adverbs ending in -ly
+  let result = text.replace(/\b\w+ly\b/gi, '');
+  // Remove some common adjectives (expand as needed)
+  const ADJECTIVES = ['good', 'bad', 'new', 'old', 'great', 'small', 'large', 'big', 'little', 'long', 'short', 'best', 'worst', 'important', 'different', 'young', 'early', 'late', 'hard', 'easy', 'strong', 'weak'];
+  let adjPattern = new RegExp('\\b(' + ADJECTIVES.map(escapeRegex).join('|') + ')\\b', 'gi');
+  result = result.replace(adjPattern, '');
+  return result.replace(/\s{2,}/g, ' ').trim();
+}
+
+// 3. Use contractions (simple replacements)
+function useContractions(text) {
+  const CONTRACTIONS = [
+    [/\bdo not\b/gi, "don't"],
+    [/\bdoes not\b/gi, "doesn't"],
+    [/\bdid not\b/gi, "didn't"],
+    [/\bcan not\b/gi, "can't"],
+    [/\bcannot\b/gi, "can't"],
+    [/\bwill not\b/gi, "won't"],
+    [/\bwould not\b/gi, "wouldn't"],
+    [/\bshould not\b/gi, "shouldn't"],
+    [/\bcould not\b/gi, "couldn't"],
+    [/\bhas not\b/gi, "hasn't"],
+    [/\bhave not\b/gi, "haven't"],
+    [/\bhad not\b/gi, "hadn't"],
+    [/\bis not\b/gi, "isn't"],
+    [/\bare not\b/gi, "aren't"],
+    [/\bwas not\b/gi, "wasn't"],
+    [/\bwere not\b/gi, "weren't"],
+    [/\bI am\b/gi, "I'm"],
+    [/\byou are\b/gi, "you're"],
+    [/\bhe is\b/gi, "he's"],
+    [/\bshe is\b/gi, "she's"],
+    [/\bit is\b/gi, "it's"],
+    [/\bwe are\b/gi, "we're"],
+    [/\bthey are\b/gi, "they're"],
+    [/\bI will\b/gi, "I'll"],
+    [/\byou will\b/gi, "you'll"],
+    [/\bhe will\b/gi, "he'll"],
+    [/\bshe will\b/gi, "she'll"],
+    [/\bit will\b/gi, "it'll"],
+    [/\bwe will\b/gi, "we'll"],
+    [/\bthey will\b/gi, "they'll"],
+    [/\bI have\b/gi, "I've"],
+    [/\byou have\b/gi, "you've"],
+    [/\bhe has\b/gi, "he's"],
+    [/\bshe has\b/gi, "she's"],
+    [/\bit has\b/gi, "it's"],
+    [/\bwe have\b/gi, "we've"],
+    [/\bthey have\b/gi, "they've"],
+    [/\bI would\b/gi, "I'd"],
+    [/\byou would\b/gi, "you'd"],
+    [/\bhe would\b/gi, "he'd"],
+    [/\bshe would\b/gi, "she'd"],
+    [/\bit would\b/gi, "it'd"],
+    [/\bwe would\b/gi, "we'd"],
+    [/\bthey would\b/gi, "they'd"],
+  ];
+  let result = text;
+  CONTRACTIONS.forEach(([pattern, replacement]) => {
+    result = result.replace(pattern, replacement);
+  });
+  return result;
+}
+
+// 4. Remove extra clauses (parentheticals, non-essential phrases)
+function removeExtraClauses(text) {
+  // Remove parentheticals in parentheses
+  let result = text.replace(/\([^)]*\)/g, '');
+  // Remove non-essential clauses after commas
+  result = result.replace(/, [^,]+,/g, ',');
+  return result.replace(/\s{2,}/g, ' ').trim();
+}
+
+// 5. Use abbreviations (simple replacements)
+function useAbbreviations(text) {
+  const ABBREVIATIONS = [
+    [/\bfor example\b/gi, 'e.g.'],
+    [/\bthat is\b/gi, 'i.e.'],
+    [/\bas soon as possible\b/gi, 'ASAP'],
+    [/\bapproximately\b/gi, 'approx.'],
+    [/\bversus\b/gi, 'vs.'],
+    [/\bwith respect to\b/gi, 're'],
+    [/\bdepartment\b/gi, 'dept.'],
+    [/\bapplication\b/gi, 'app.'],
+    [/\bindformation\b/gi, 'info'],
+    [/\bidentification\b/gi, 'ID'],
+    [/\bnumber\b/gi, 'no.'],
+    [/\bminutes\b/gi, 'min'],
+    [/\bhours\b/gi, 'hrs'],
+    [/\bseconds\b/gi, 'sec'],
+    [/\bJanuary\b/gi, 'Jan.'],
+    [/\bFebruary\b/gi, 'Feb.'],
+    [/\bSeptember\b/gi, 'Sept.'],
+    [/\bNovember\b/gi, 'Nov.'],
+    [/\bDecember\b/gi, 'Dec.'],
+  ];
+  let result = text;
+  ABBREVIATIONS.forEach(([pattern, replacement]) => {
+    result = result.replace(pattern, replacement);
+  });
+  return result;
+}
+
+// 6. Replace with shorter synonyms (simple map)
+function replaceWithShorterSynonyms(text) {
+  const SYNONYMS = [
+    [/\butilize\b/gi, 'use'],
+    [/\bapproximately\b/gi, 'about'],
+    [/\bassist\b/gi, 'help'],
+    [/\bcommence\b/gi, 'start'],
+    [/\bendeavor\b/gi, 'try'],
+    [/\bsubsequent\b/gi, 'next'],
+    [/\bprior to\b/gi, 'before'],
+    [/\bsubstantial\b/gi, 'big'],
+    [/\bindividuals\b/gi, 'people'],
+    [/\bobjective\b/gi, 'goal'],
+    [/\bapproximately\b/gi, 'about'],
+    [/\binitiate\b/gi, 'start'],
+    [/\bterminate\b/gi, 'end'],
+    [/\bcommence\b/gi, 'start'],
+    [/\bassistance\b/gi, 'help'],
+    [/\bsubsequently\b/gi, 'then'],
+    [/\bendeavor\b/gi, 'try'],
+    [/\bsubstantial\b/gi, 'big'],
+    [/\bindividuals\b/gi, 'people'],
+    [/\bobjective\b/gi, 'goal'],
+  ];
+  let result = text;
+  SYNONYMS.forEach(([pattern, replacement]) => {
+    result = result.replace(pattern, replacement);
+  });
+  return result;
+}
+
+// 7. Remove grammatical elements (allow phrases, drop articles, prepositions, etc.)
+function removeGrammaticalElements(text) {
+  // Remove articles, some prepositions, and conjunctions
+  const GRAMMAR_WORDS = [
+    'a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet',
+    'at', 'by', 'in', 'of', 'on', 'to', 'up', 'with', 'as', 'from', 'into', 'like', 'near', 'off', 'over', 'past', 'since', 'than', 'till', 'upon', 'via', 'about', 'after', 'before', 'behind', 'below', 'beneath', 'beside', 'between', 'beyond', 'during', 'except', 'inside', 'onto', 'outside', 'per', 'through', 'under', 'within', 'without',
+  ];
+  let pattern = new RegExp('\\b(' + GRAMMAR_WORDS.map(escapeRegex).join('|') + ')\\b', 'gi');
+  return text.replace(pattern, '').replace(/\s{2,}/g, ' ').trim();
+}
 
 // --- Function Declarations (use function declarations for hoisting) ---
 
@@ -444,6 +655,7 @@ const performAnalysis = (text) => {
   analysisTimeout = setTimeout(() => {
     const results = analyzeText(text);
     updateAnalysisResults(results);
+    updateReductionUI();
   }, DEBOUNCE_DELAY);
 };
 
@@ -787,6 +999,18 @@ document.addEventListener('DOMContentLoaded', () => {
   performDuplicateCheck('');
   initializeWordHighlighter();
 
+  // Initialize reduction UI
+  updateReductionUI();
+  if (reductionSlider) {
+    reductionSlider.addEventListener('input', handleReductionSliderChange);
+  }
+
+  // Update reduction UI on text input
+  if (textInput) {
+    textInput.addEventListener('input', updateReductionUI);
+    textInput.addEventListener('paste', () => setTimeout(updateReductionUI, 10));
+  }
+
   // Duplicate checker text input event listeners
   duplicateCheckerInput.addEventListener('input', (event) => {
     performDuplicateCheck(event.target.value);
@@ -844,3 +1068,46 @@ addWordBtn.addEventListener('click', () => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', handleKeyboardShortcuts);
+
+/**
+ * Updates the reduction slider, preview, and method message based on the input text.
+ */
+function updateReductionUI() {
+  const text = textInput.value;
+  const charCount = text.length;
+  if (!reductionSlider || !reductionSliderMax || !reductionPreview || !reductionMethod) return;
+
+  if (charCount < 25) {
+    reductionSlider.disabled = true;
+    reductionSlider.value = 25;
+    reductionSlider.max = 25;
+    reductionSliderMin = 25;
+    reductionSliderMax.textContent = '25';
+    reductionPreview.textContent = '';
+    reductionMethod.textContent = 'Max reduction reached.';
+    return;
+  }
+
+  reductionSlider.disabled = false;
+  reductionSlider.max = charCount;
+  reductionSlider.value = charCount;
+  reductionSliderMax.textContent = charCount;
+
+  // Show original text as preview by default
+  reductionPreview.textContent = text;
+  reductionMethod.textContent = 'No reduction needed.';
+}
+
+// On slider change, update preview and method
+function handleReductionSliderChange() {
+  const text = textInput.value;
+  const target = parseInt(reductionSlider.value, 10);
+  if (text.length < 25) {
+    reductionPreview.textContent = '';
+    reductionMethod.textContent = 'Max reduction reached.';
+    return;
+  }
+  const { result, method } = reduceTextToTarget(text, target);
+  reductionPreview.textContent = result;
+  reductionMethod.textContent = method;
+}
