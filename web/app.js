@@ -478,7 +478,19 @@ function updateDuplicateCheckerResults(results) {
 }
 
 // --- DOMContentLoaded: All DOM queries and event listeners go here ---
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
+  textInput.focus();
+  performAnalysis('');
+  performMultiLineAnalysis('');
+  performDuplicateCheck('');
+  initializeWordHighlighter();
+
+  // Initialize reduction UI
+  updateReductionUI();
+  if (reductionSlider) {
+    reductionSlider.addEventListener('input', handleReductionSliderChange);
+  }
+
   // Duplicate Checker Elements
   const duplicateCheckerInput = document.getElementById('duplicate-checker-input');
   const duplicateCheckerCount = document.getElementById('duplicate-checker-count');
