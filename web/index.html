@@ -51,7 +51,7 @@
         </nav>
 
         <!-- Main Content -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col">
             <!-- Single Line Analysis Tab -->
             <div id="single-line-tab" class="tab-content">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
@@ -308,34 +308,26 @@
             </div>
 
             <!-- Side-by-side Tab -->
-            <div id="side-by-side-tab" class="tab-content hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+            <div id="side-by-side-tab" class="tab-content hidden flex-1 flex items-center justify-center">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full h-full items-center">
                     <!-- Left Input Section -->
-                    <div class="flex flex-col h-full">
-                        <div class="flex-1">
-                            <div class="relative h-full">
-                                <textarea 
-                                    id="side-by-side-left-input" 
-                                    class="w-full h-full p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
-                                    placeholder="Enter your left text here..."
-                                    spellcheck="false"
-                                ></textarea>
-                            </div>
-                        </div>
+                    <div class="flex flex-col h-full justify-center">
+                        <textarea 
+                            id="side-by-side-left-input" 
+                            class="w-full h-[60vh] lg:h-[70vh] p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                            placeholder="Enter your left text here..."
+                            spellcheck="false"
+                        ></textarea>
                     </div>
 
                     <!-- Right Input Section -->
-                    <div class="flex flex-col h-full">
-                        <div class="flex-1">
-                            <div class="relative h-full">
-                                <textarea 
-                                    id="side-by-side-right-input" 
-                                    class="w-full h-full p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
-                                    placeholder="Enter your right text here..."
-                                    spellcheck="false"
-                                ></textarea>
-                            </div>
-                        </div>
+                    <div class="flex flex-col h-full justify-center">
+                        <textarea 
+                            id="side-by-side-right-input" 
+                            class="w-full h-[60vh] lg:h-[70vh] p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                            placeholder="Enter your right text here..."
+                            spellcheck="false"
+                        ></textarea>
                     </div>
                 </div>
             </div>
