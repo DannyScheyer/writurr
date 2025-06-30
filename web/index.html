@@ -21,9 +21,7 @@
                         </h1>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <button id="clear-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-200 font-fanwood">
-                            Clear Text
-                        </button>
+                        <!-- Clear button removed -->
                     </div>
                 </div>
             </div>
@@ -313,41 +311,29 @@
             <div id="side-by-side-tab" class="tab-content hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
                     <!-- Left Input Section -->
-                    <div class="flex flex-col">
-                        <div class="mb-4">
-                            <label for="side-by-side-left-input" class="block text-sm font-medium text-gray-700 mb-2 font-fanwood">
-                                Left Text Input:
-                            </label>
-                            <div class="relative">
+                    <div class="flex flex-col h-full">
+                        <div class="flex-1">
+                            <div class="relative h-full">
                                 <textarea 
                                     id="side-by-side-left-input" 
-                                    class="w-full h-96 p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                                    class="w-full h-full p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
                                     placeholder="Enter your left text here..."
                                     spellcheck="false"
                                 ></textarea>
-                                <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1">
-                                    <span id="side-by-side-left-count">0 characters</span>
-                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Right Input Section -->
-                    <div class="flex flex-col">
-                        <div class="mb-4">
-                            <label for="side-by-side-right-input" class="block text-sm font-medium text-gray-700 mb-2 font-fanwood">
-                                Right Text Input:
-                            </label>
-                            <div class="relative">
+                    <div class="flex flex-col h-full">
+                        <div class="flex-1">
+                            <div class="relative h-full">
                                 <textarea 
                                     id="side-by-side-right-input" 
-                                    class="w-full h-96 p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
+                                    class="w-full h-full p-4 text-sm font-fanwood border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none custom-scrollbar transition-colors duration-200"
                                     placeholder="Enter your right text here..."
                                     spellcheck="false"
                                 ></textarea>
-                                <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1">
-                                    <span id="side-by-side-right-count">0 characters</span>
-                                </div>
                             </div>
                         </div>
                     </div>
