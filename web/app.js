@@ -482,7 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
   textInput.focus();
   performAnalysis('');
   performMultiLineAnalysis('');
-  performDuplicateCheck('');
+  if (duplicateCheckerInput && duplicateCheckerCount && duplicateCheckerDisplay && sameSentenceDuplicates && withinTenWordsDuplicates) {
+    performDuplicateCheck('');
+  }
   initializeWordHighlighter();
 
   // Initialize reduction UI
