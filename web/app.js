@@ -3,8 +3,6 @@
  * Web version without Electron dependencies
  */
 
-// Move all DOM element declarations to the very top of the file, before any logic or event listeners that use them.
-
 // Text Analysis App - Desktop + Mobile
 let selectedWordControls = [];
 let currentSelectedLine = null;
@@ -58,13 +56,6 @@ let wordHighlightData = [];
 let wordControlCounter = 0;
 const DEBOUNCE_DELAY = 300; // ms
 
-// Reduction slider and preview elements
-const reductionSlider = document.getElementById('reduction-slider');
-const reductionSliderMax = document.getElementById('reduction-slider-max');
-const reductionPreview = document.getElementById('reduction-preview');
-const reductionMethod = document.getElementById('reduction-method');
-const reductionSliderValue = document.getElementById('reduction-slider-value');
-
 // --- Stop Words Set ---
 const STOP_WORDS = new Set([
   // Articles, conjunctions, prepositions
@@ -74,211 +65,6 @@ const STOP_WORDS = new Set([
   // Pronouns
   'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs', 'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves'
 ]);
-
-// --- Reduction Pipeline ---
-
-/**
- * Reduce text to a target character count using a series of strategies.
- * @param {string} text - The input text
- * @param {number} target - The target character count
- * @returns {{result: string, method: string}}
- */
-function reduceTextToTarget(text, target) {
-  if (text.length <= target) {
-    return { result: text, method: 'No reduction needed' };
-  }
-
-  // 1. Remove filler words
-  let reduced = removeFillerWords(text);
-  if (reduced.length <= target) return { result: reduced, method: 'Removed filler words' };
-
-  // 2. Remove adjectives/adverbs/other words
-  reduced = removeAdjectivesAdverbs(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Removed adjectives/adverbs/other words' };
-
-  // 3. Use contractions
-  reduced = useContractions(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Used contractions' };
-
-  // 4. Remove extra clauses
-  reduced = removeExtraClauses(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Removed extra clauses' };
-
-  // 5. Use abbreviations
-  reduced = useAbbreviations(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Used abbreviations' };
-
-  // 6. Replace with shorter synonyms
-  reduced = replaceWithShorterSynonyms(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Replaced with shorter synonyms' };
-
-  // 7. Remove grammatical elements (allow phrases)
-  reduced = removeGrammaticalElements(reduced);
-  if (reduced.length <= target) return { result: reduced, method: 'Removed grammatical elements (phrase style)' };
-
-  // 8. Max reduction reached
-  return { result: reduced, method: 'Max reduction reached' };
-}
-
-// --- Individual Reduction Steps ---
-
-// 1. Remove filler words (using a list from Grammarly)
-function removeFillerWords(text) {
-  const FILLER_WORDS = [
-    'um', 'uh', 'oh', 'er', 'ah', 'very', 'really', 'highly', 'like', 'just',
-    'you know', 'you see', 'right', 'i mean', 'i guess', 'i suppose',
-    'totally', 'literally', 'seriously'
-  ];
-  let pattern = new RegExp('\\b(' + FILLER_WORDS.map(escapeRegex).join('|') + ')\\b', 'gi');
-  return text.replace(pattern, '').replace(/\s{2,}/g, ' ').trim();
-}
-
-// 2. Remove adjectives/adverbs/other words (simple heuristic: remove words ending in -ly, common adjectives)
-function removeAdjectivesAdverbs(text) {
-  // Remove adverbs ending in -ly
-  let result = text.replace(/\b\w+ly\b/gi, '');
-  // Remove some common adjectives (expand as needed)
-  const ADJECTIVES = ['good', 'bad', 'new', 'old', 'great', 'small', 'large', 'big', 'little', 'long', 'short', 'best', 'worst', 'important', 'different', 'young', 'early', 'late', 'hard', 'easy', 'strong', 'weak'];
-  let adjPattern = new RegExp('\\b(' + ADJECTIVES.map(escapeRegex).join('|') + ')\\b', 'gi');
-  result = result.replace(adjPattern, '');
-  return result.replace(/\s{2,}/g, ' ').trim();
-}
-
-// 3. Use contractions (simple replacements)
-function useContractions(text) {
-  const CONTRACTIONS = [
-    [/\bdo not\b/gi, "don't"],
-    [/\bdoes not\b/gi, "doesn't"],
-    [/\bdid not\b/gi, "didn't"],
-    [/\bcan not\b/gi, "can't"],
-    [/\bcannot\b/gi, "can't"],
-    [/\bwill not\b/gi, "won't"],
-    [/\bwould not\b/gi, "wouldn't"],
-    [/\bshould not\b/gi, "shouldn't"],
-    [/\bcould not\b/gi, "couldn't"],
-    [/\bhas not\b/gi, "hasn't"],
-    [/\bhave not\b/gi, "haven't"],
-    [/\bhad not\b/gi, "hadn't"],
-    [/\bis not\b/gi, "isn't"],
-    [/\bare not\b/gi, "aren't"],
-    [/\bwas not\b/gi, "wasn't"],
-    [/\bwere not\b/gi, "weren't"],
-    [/\bI am\b/gi, "I'm"],
-    [/\byou are\b/gi, "you're"],
-    [/\bhe is\b/gi, "he's"],
-    [/\bshe is\b/gi, "she's"],
-    [/\bit is\b/gi, "it's"],
-    [/\bwe are\b/gi, "we're"],
-    [/\bthey are\b/gi, "they're"],
-    [/\bI will\b/gi, "I'll"],
-    [/\byou will\b/gi, "you'll"],
-    [/\bhe will\b/gi, "he'll"],
-    [/\bshe will\b/gi, "she'll"],
-    [/\bit will\b/gi, "it'll"],
-    [/\bwe will\b/gi, "we'll"],
-    [/\bthey will\b/gi, "they'll"],
-    [/\bI have\b/gi, "I've"],
-    [/\byou have\b/gi, "you've"],
-    [/\bhe has\b/gi, "he's"],
-    [/\bshe has\b/gi, "she's"],
-    [/\bit has\b/gi, "it's"],
-    [/\bwe have\b/gi, "we've"],
-    [/\bthey have\b/gi, "they've"],
-    [/\bI would\b/gi, "I'd"],
-    [/\byou would\b/gi, "you'd"],
-    [/\bhe would\b/gi, "he'd"],
-    [/\bshe would\b/gi, "she'd"],
-    [/\bit would\b/gi, "it'd"],
-    [/\bwe would\b/gi, "we'd"],
-    [/\bthey would\b/gi, "they'd"],
-  ];
-  let result = text;
-  CONTRACTIONS.forEach(([pattern, replacement]) => {
-    result = result.replace(pattern, replacement);
-  });
-  return result;
-}
-
-// 4. Remove extra clauses (parentheticals, non-essential phrases)
-function removeExtraClauses(text) {
-  // Remove parentheticals in parentheses
-  let result = text.replace(/\([^)]*\)/g, '');
-  // Remove non-essential clauses after commas
-  result = result.replace(/, [^,]+,/g, ',');
-  return result.replace(/\s{2,}/g, ' ').trim();
-}
-
-// 5. Use abbreviations (simple replacements)
-function useAbbreviations(text) {
-  const ABBREVIATIONS = [
-    [/\bfor example\b/gi, 'e.g.'],
-    [/\bthat is\b/gi, 'i.e.'],
-    [/\bas soon as possible\b/gi, 'ASAP'],
-    [/\bapproximately\b/gi, 'approx.'],
-    [/\bversus\b/gi, 'vs.'],
-    [/\bwith respect to\b/gi, 're'],
-    [/\bdepartment\b/gi, 'dept.'],
-    [/\bapplication\b/gi, 'app.'],
-    [/\bindformation\b/gi, 'info'],
-    [/\bidentification\b/gi, 'ID'],
-    [/\bnumber\b/gi, 'no.'],
-    [/\bminutes\b/gi, 'min'],
-    [/\bhours\b/gi, 'hrs'],
-    [/\bseconds\b/gi, 'sec'],
-    [/\bJanuary\b/gi, 'Jan.'],
-    [/\bFebruary\b/gi, 'Feb.'],
-    [/\bSeptember\b/gi, 'Sept.'],
-    [/\bNovember\b/gi, 'Nov.'],
-    [/\bDecember\b/gi, 'Dec.'],
-  ];
-  let result = text;
-  ABBREVIATIONS.forEach(([pattern, replacement]) => {
-    result = result.replace(pattern, replacement);
-  });
-  return result;
-}
-
-// 6. Replace with shorter synonyms (simple map)
-function replaceWithShorterSynonyms(text) {
-  const SYNONYMS = [
-    [/\butilize\b/gi, 'use'],
-    [/\bapproximately\b/gi, 'about'],
-    [/\bassist\b/gi, 'help'],
-    [/\bcommence\b/gi, 'start'],
-    [/\bendeavor\b/gi, 'try'],
-    [/\bsubsequent\b/gi, 'next'],
-    [/\bprior to\b/gi, 'before'],
-    [/\bsubstantial\b/gi, 'big'],
-    [/\bindividuals\b/gi, 'people'],
-    [/\bobjective\b/gi, 'goal'],
-    [/\bapproximately\b/gi, 'about'],
-    [/\binitiate\b/gi, 'start'],
-    [/\bterminate\b/gi, 'end'],
-    [/\bcommence\b/gi, 'start'],
-    [/\bassistance\b/gi, 'help'],
-    [/\bsubsequently\b/gi, 'then'],
-    [/\bendeavor\b/gi, 'try'],
-    [/\bsubstantial\b/gi, 'big'],
-    [/\bindividuals\b/gi, 'people'],
-    [/\bobjective\b/gi, 'goal'],
-  ];
-  let result = text;
-  SYNONYMS.forEach(([pattern, replacement]) => {
-    result = result.replace(pattern, replacement);
-  });
-  return result;
-}
-
-// 7. Remove grammatical elements (allow phrases, drop articles, prepositions, etc.)
-function removeGrammaticalElements(text) {
-  // Remove articles, some prepositions, and conjunctions
-  const GRAMMAR_WORDS = [
-    'a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet',
-    'at', 'by', 'in', 'of', 'on', 'to', 'up', 'with', 'as', 'from', 'into', 'like', 'near', 'off', 'over', 'past', 'since', 'than', 'till', 'upon', 'via', 'about', 'after', 'before', 'behind', 'below', 'beneath', 'beside', 'between', 'beyond', 'during', 'except', 'inside', 'onto', 'outside', 'per', 'through', 'under', 'within', 'without',
-  ];
-  let pattern = new RegExp('\\b(' + GRAMMAR_WORDS.map(escapeRegex).join('|') + ')\\b', 'gi');
-  return text.replace(pattern, '').replace(/\s{2,}/g, ' ').trim();
-}
 
 // --- Function Declarations (use function declarations for hoisting) ---
 
@@ -461,7 +247,6 @@ function highlightDuplicates(text, sameSentenceSet) {
 }
 
 function performDuplicateCheck(text) {
-  if (!duplicateCheckerInput || !duplicateCheckerCount || !duplicateCheckerDisplay || !sameSentenceDuplicates || !withinTenWordsDuplicates) return;
   if (window.duplicateCheckerTimeout) {
     clearTimeout(window.duplicateCheckerTimeout);
   }
@@ -480,21 +265,7 @@ function updateDuplicateCheckerResults(results) {
 }
 
 // --- DOMContentLoaded: All DOM queries and event listeners go here ---
-document.addEventListener('DOMContentLoaded', () => {
-  textInput.focus();
-  performAnalysis('');
-  performMultiLineAnalysis('');
-  if (duplicateCheckerInput && duplicateCheckerCount && duplicateCheckerDisplay && sameSentenceDuplicates && withinTenWordsDuplicates) {
-    performDuplicateCheck('');
-  }
-  initializeWordHighlighter();
-
-  // Initialize reduction UI
-  updateReductionUI();
-  if (reductionSlider) {
-    reductionSlider.addEventListener('input', handleReductionSliderChange);
-  }
-
+document.addEventListener('DOMContentLoaded', function() {
   // Duplicate Checker Elements
   const duplicateCheckerInput = document.getElementById('duplicate-checker-input');
   const duplicateCheckerCount = document.getElementById('duplicate-checker-count');
@@ -673,7 +444,6 @@ const performAnalysis = (text) => {
   analysisTimeout = setTimeout(() => {
     const results = analyzeText(text);
     updateAnalysisResults(results);
-    updateReductionUI();
   }, DEBOUNCE_DELAY);
 };
 
@@ -782,6 +552,9 @@ const updateMultiLineAnalysis = (lines) => {
                 ${analysis.totalCharacters} chars${analysis.charactersNoSpaces !== analysis.totalCharacters ? ` (${analysis.charactersNoSpaces} no spaces)` : ''}${analysis.wordCount > 0 ? ` • ${analysis.wordCount} words` : ''}
               </div>
             </div>
+            <div class="character-count text-sm ml-3">
+              ${analysis.totalCharacters}
+            </div>
           </div>
         </div>
       `;
@@ -789,15 +562,285 @@ const updateMultiLineAnalysis = (lines) => {
     .join('');
 
   lineAnalysisList.innerHTML = analysisHTML;
-  selectedLineDetails.classList.remove('hidden');
-  selectedLineIndex = -1;
+
+  const lineItems = lineAnalysisList.querySelectorAll('.line-item');
+  lineItems.forEach((item, index) => {
+    item.addEventListener('click', () => selectLine(index));
+  });
 };
 
-// Place updateReductionUI and handleReductionSliderChange here
-function updateReductionUI() {
-  // Implementation of updateReductionUI function
-}
+/**
+ * Selects a line for detailed analysis
+ * @param {number} lineIndex - Index of the line to select
+ */
+const selectLine = (lineIndex) => {
+  if (lineIndex < 0 || lineIndex >= currentLines.length) return;
 
-function handleReductionSliderChange() {
-  // Implementation of handleReductionSliderChange function
-}
+  selectedLineIndex = lineIndex;
+  const line = currentLines[lineIndex];
+  const analysis = analyzeText(line);
+
+  const lineItems = lineAnalysisList.querySelectorAll('.line-item');
+  lineItems.forEach((item, index) => {
+    if (index === lineIndex) {
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+
+  selectedTotalCharsEl.textContent = analysis.totalCharacters.toLocaleString();
+  selectedCharsNoSpacesEl.textContent = analysis.charactersNoSpaces.toLocaleString();
+  selectedWordCountEl.textContent = analysis.wordCount.toLocaleString();
+  selectedUniqueWordsEl.textContent = analysis.uniqueWordCount.toLocaleString();
+  selectedLinePreviewEl.textContent = line || '(Empty Line)';
+
+  selectedLineDetailsEl.classList.remove('hidden');
+  selectedLineDetailsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
+/**
+ * Handles keyboard shortcuts
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+const handleKeyboardShortcuts = (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+    event.preventDefault();
+    clearText();
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === '1') {
+    event.preventDefault();
+    switchTab('single-line');
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === '2') {
+    event.preventDefault();
+    switchTab('multi-line');
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === '3') {
+    event.preventDefault();
+    switchTab('word-highlighter');
+  }
+};
+
+/**
+ * Word Highlighter Functions
+ */
+
+/**
+ * Creates a new word control element
+ * @returns {HTMLElement} The word control element
+ */
+const createWordControl = () => {
+  const controlId = ++wordControlCounter;
+  const colors = ['#ffeb3b', '#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#f44336', '#00bcd4', '#8bc34a'];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  
+  const controlDiv = document.createElement('div');
+  controlDiv.className = 'word-control flex items-center space-x-2 mb-2 p-2 bg-white border border-gray-200';
+  controlDiv.dataset.controlId = controlId;
+  
+  controlDiv.innerHTML = `
+    <input 
+      type="text" 
+      placeholder="Enter word..." 
+      class="word-input flex-1 px-3 py-1 text-sm border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+    >
+    <input 
+      type="color" 
+      value="${randomColor}"
+      class="color-input w-8 h-8 border border-gray-300 cursor-pointer"
+    >
+    <span class="count-display text-sm font-semibold text-gray-600 min-w-12">0</span>
+    <button class="remove-word-btn px-2 py-1 text-xs text-red-600 hover:text-red-800 border border-red-300 hover:border-red-500">
+      ×
+    </button>
+  `;
+  
+  return controlDiv;
+};
+
+/**
+ * Sets up event listeners for a word control
+ * @param {HTMLElement} control - The word control element
+ */
+const setupWordControlListeners = (control) => {
+  const wordInput = control.querySelector('.word-input');
+  const colorInput = control.querySelector('.color-input');
+  const removeBtn = control.querySelector('.remove-word-btn');
+  
+  wordInput.addEventListener('input', performHighlighterUpdate);
+  colorInput.addEventListener('change', performHighlighterUpdate);
+  removeBtn.addEventListener('click', () => {
+    if (document.querySelectorAll('.word-control').length > 1) {
+      removeWordControl(control);
+    }
+  });
+};
+
+/**
+ * Removes a word control
+ * @param {HTMLElement} controlElement - The control element to remove
+ */
+const removeWordControl = (controlElement) => {
+  controlElement.remove();
+  updateHighlightedText();
+};
+
+/**
+ * Gets word highlight data from all controls
+ * @returns {Array} Array of word highlight objects
+ */
+const getWordHighlightData = () => {
+  const controls = document.querySelectorAll('.word-control');
+  return Array.from(controls).map(control => {
+    const wordInput = control.querySelector('.word-input');
+    const colorInput = control.querySelector('.color-input');
+    const word = wordInput.value.trim().toLowerCase();
+    return {
+      id: control.dataset.controlId,
+      word: word,
+      color: colorInput.value,
+      control: control
+    };
+  }).filter(item => item.word.length > 0);
+};
+
+/**
+ * Highlights words in text and updates display
+ */
+const updateHighlightedText = () => {
+  const text = highlighterInput.value;
+  if (!text.trim()) {
+    highlightedTextDisplay.innerHTML = 'Enter text and add words to highlight to see the results here...';
+    // Reset all counts to 0
+    document.querySelectorAll('.count-display').forEach(el => el.textContent = '0');
+    return;
+  }
+
+  const wordData = getWordHighlightData();
+  if (wordData.length === 0) {
+    highlightedTextDisplay.textContent = text;
+    return;
+  }
+
+  // Create a map to track word counts
+  const wordCounts = {};
+  
+  let highlightedText = escapeHtml(text);
+  
+  // Sort words by length (longest first) to avoid partial matches
+  const sortedWordData = wordData.sort((a, b) => b.word.length - a.word.length);
+  
+  sortedWordData.forEach(({ word, color, id }) => {
+    if (!word) return;
+    
+    // Create regex to match whole words (case insensitive)
+    const regex = new RegExp(`\\b${escapeRegex(word)}\\b`, 'gi');
+    const matches = text.match(regex) || [];
+    wordCounts[id] = matches.length;
+    
+    // Replace matches with highlighted version
+    highlightedText = highlightedText.replace(regex, (match) => {
+      return `<span style="background-color: ${color}; padding: 1px 2px; border-radius: 2px;">${match}</span>`;
+    });
+  });
+  
+  // Update counts in controls
+  sortedWordData.forEach(({ id, control }) => {
+    const countDisplay = control.querySelector('.count-display');
+    countDisplay.textContent = wordCounts[id] || 0;
+  });
+  
+  highlightedTextDisplay.innerHTML = highlightedText;
+};
+
+/**
+ * Debounced highlighter update
+ */
+const performHighlighterUpdate = () => {
+  if (highlighterTimeout) {
+    clearTimeout(highlighterTimeout);
+  }
+  
+  highlighterTimeout = setTimeout(() => {
+    updateHighlightedText();
+  }, DEBOUNCE_DELAY);
+};
+
+/**
+ * Initializes word highlighter with first control
+ */
+const initializeWordHighlighter = () => {
+  const firstControl = createWordControl();
+  wordHighlightControls.appendChild(firstControl);
+  setupWordControlListeners(firstControl);
+};
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  textInput.focus();
+  performAnalysis('');
+  performMultiLineAnalysis('');
+  performDuplicateCheck('');
+  initializeWordHighlighter();
+
+  // Duplicate checker text input event listeners
+  duplicateCheckerInput.addEventListener('input', (event) => {
+    performDuplicateCheck(event.target.value);
+  });
+
+  duplicateCheckerInput.addEventListener('paste', (event) => {
+    setTimeout(() => {
+      performDuplicateCheck(duplicateCheckerInput.value);
+    }, 10);
+  });
+});
+
+// Single line text input event listeners
+textInput.addEventListener('input', (event) => {
+  performAnalysis(event.target.value);
+});
+
+textInput.addEventListener('paste', (event) => {
+  setTimeout(() => {
+    performAnalysis(textInput.value);
+  }, 10);
+});
+
+// Multi-line text input event listeners
+multiLineInput.addEventListener('input', (event) => {
+  performMultiLineAnalysis(event.target.value);
+});
+
+multiLineInput.addEventListener('paste', (event) => {
+  setTimeout(() => {
+    performMultiLineAnalysis(multiLineInput.value);
+  }, 10);
+});
+
+// Tab switching event listeners
+tabButtons.forEach(button => {
+  button.addEventListener('click', (event) => {
+    const tabName = event.target.dataset.tab;
+    switchTab(tabName);
+  });
+});
+
+// Word highlighter event listeners
+highlighterInput.addEventListener('input', performHighlighterUpdate);
+highlighterInput.addEventListener('paste', () => {
+  setTimeout(performHighlighterUpdate, 10);
+});
+
+addWordBtn.addEventListener('click', () => {
+  const newControl = createWordControl();
+  wordHighlightControls.appendChild(newControl);
+  setupWordControlListeners(newControl);
+  newControl.querySelector('.word-input').focus();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', handleKeyboardShortcuts);
